@@ -2,7 +2,7 @@ from math import sin, cos
 from lx16a import *
 import time
 
-LX16A.initialize("/dev/ttyUSB0", 0.1)
+LX16A.initialize("/dev/cu.usbserial-1420", 0.1)
 
 try:
     servo1 = LX16A(1)
@@ -50,32 +50,42 @@ print("\n")
 print("HOMING SERVOS:")
 print("\n")
 
-# Leg 1
-servo1.move(120, 3000)
-time.sleep(1)
-servo2.move(120, 3000)
-time.sleep(1)
-# Leg 2
-servo3.move(120, 3000)
-time.sleep(1)
-servo4.move(120, 3000)
-time.sleep(1)
-# Leg 3
-servo5.move(120, 3000)
-time.sleep(1)
-servo6.move(120, 3000)
-time.sleep(1)
-# Leg 4
-servo7.move(120, 3000)
-time.sleep(1)
-servo8.move(120, 3000)
-time.sleep(1)
+### Landing mode.
+### Lower motors.
+##servo2.move(95.04, 3000)
+##servo4.move(119.28, 3000)
+##servo6.move(66.72, 3000)
+##servo8.move(90, 3000)
+##time.sleep(3.5)
+##
+### Upper motors.
+##servo1.move(118.08, 3000)
+##servo3.move(175.92, 3000)
+##servo5.move(133.68, 3000)
+##servo7.move(108.72, 3000)
+##time.sleep(5)
+
+
+# Standing mode.
+# Lower motors.
+servo2.move(173.76, 3000)
+servo4.move(181.44, 3000)
+servo6.move(137.52, 3000)
+servo8.move(159.6, 3000)
+time.sleep(3.5)
+
+# Upper motors.
+servo1.move(116, 3000)
+servo3.move(176.4, 3000)
+servo5.move(150.72, 3000)
+servo7.move(118.08, 3000)
+time.sleep(3.5)
 
 
 time.sleep(0.5)
       
 print("SERVO HOME ANGLES:")
-# Leg 1
+# Lower motors
 print(servo1.get_physical_angle())
 print(servo2.get_physical_angle())
 # Leg 2
@@ -87,3 +97,23 @@ print(servo6.get_physical_angle())
 # Leg 4
 print(servo7.get_physical_angle())
 print(servo8.get_physical_angle())
+
+time.sleep(1)
+
+# Trying to Walk.
+
+t = 0
+
+while True:
+    servo1.move(10*sin(0.5*t)+100)
+    servo2.move(15*sin(0.5*t)+145)
+    
+
+    time.sleep(0.05)
+    t += 0.1
+
+
+
+
+
+
