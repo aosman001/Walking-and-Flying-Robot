@@ -1,4 +1,4 @@
-cfrom math import sin, cos
+from math import sin, cos
 from lx16a import *
 import time
 
