@@ -12,20 +12,12 @@
 
 ############################################################################################################################
 
-
-# Importing modules.
-
-from math import sin, cos   # To do math.
 from .lx16a import *         # To control the servos.
 import time                 # To track time for delays or walking patterns.
-import threading            # To run different sections of code concurently.
-from state import walking_lock, walking_direction, walking_speed, interrupt_walking
+from state import state
 
 # Initialize the servo controller, connect to the servos, and set their angle limits.
-
-
 LX16A.initialize("/dev/ttyUSB0", 0.1)
-
 
 try:
     servo1 = LX16A(1)
@@ -110,6 +102,14 @@ def land():
     time.sleep(2)
 
 
+def map_speed_to_motor_time(x):
+    if x < 0.0:
+        x = 0.0
+    if x > 1.0:
+        x = 1.0
+    return int(-2500 * x + 3000)
+
+
 #   Make the robot walk by each of the four legs in regular, timed patterns.
 ##  This function takes three parameters, which are physically set by a remote controller \\
 ##  connected to our microcontroller (a Raspberry Pi 4B):
@@ -118,12 +118,14 @@ def land():
 ##      3. walking_speed: Float determining the speed of the robot (by uniformly scaling servo rotation times and delays)
 
 def walk():
-    global walking_lock, walking_direction, walking_speed, interrupt_walking
+    global state
+    walking_speed, walking_direction, walking_lock = state["walking_speed"], state["walking_direction"], state["walking_lock"]
 
     # If the walking function is locked, don't walk! (Duh). This is an extra check, as the main loop already checks this
     if walking_lock:
-        print("Walking is locked--no bueno.")
         return
+    
+    print("CONSUME in walk()", walking_lock, walking_direction, walking_speed)
     
     try :
         # In the "forward" direction, motors 1-4 are in the front.
@@ -138,20 +140,24 @@ def walk():
                         (75, 152, 157, 73, 130, 10, 95, 112),   # Step 4
                     ]
                 for pos in positions:
-                    if interrupt_walking:
-                        interrupt_walking = False
+                    print("POSITION LOOP")
+                    if state["interrupt_walking"]:
+                        state["interrupt_walking"] = False
                         return
+                    
+                    walk_time = map_speed_to_motor_time(walking_speed)
 
-                    servo1.move(pos[0], int(1000/walking_speed))
-                    servo2.move(pos[1], int(1000/walking_speed))
-                    servo3.move(pos[2], int(1000/walking_speed))
-                    servo4.move(pos[3], int(1000/walking_speed))
-                    servo5.move(pos[4], int(1000/walking_speed))
-                    servo6.move(pos[5], int(1000/walking_speed))
-                    servo7.move(pos[6], int(1000/walking_speed))
-                    servo8.move(pos[7], int(1000/walking_speed))
 
-                    time.sleep(0.8/walking_speed)
+                    servo1.move(pos[0], walk_time)
+                    servo2.move(pos[1], walk_time)
+                    servo3.move(pos[2], walk_time)
+                    servo4.move(pos[3], walk_time)
+                    servo5.move(pos[4], walk_time)
+                    servo6.move(pos[5], walk_time)
+                    servo7.move(pos[6], walk_time)
+                    servo8.move(pos[7], walk_time)
+
+                    time.sleep((walk_time / 1000))
 
 
         # The "middle" direction is just the robot standing in place.
@@ -213,15 +219,18 @@ def handle_user_input(key_press):
 
 
 def walking_main():
-    global walking_lock, interrupt_walking
+    global state
+    walking_lock, interrupt_walking = state["walking_lock"], state["interrupt_walking"]
 
     while True:
         if walking_lock:
+            print("CONSUME", "walking_lock", walking_lock)
             stand()
             continue
 
         # Still returning state to False, might prevent a weird data race condition
         if interrupt_walking:
+            print("CONSUME","interrupt walking", walking_lock)
             time.sleep(0.1)
             continue
         

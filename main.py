@@ -1,8 +1,6 @@
 import threading
-import time
 import mavlink_monitor 
 from Walking.Walking_RP_Code import walking_main
-
 
 
 if __name__ == "__main__":
