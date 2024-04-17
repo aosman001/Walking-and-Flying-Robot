@@ -186,7 +186,7 @@ stop_flag = False
 
 def get_boolean_input(prompt):
     
-    Gets boolean input from the user.
+    #Gets boolean input from the user.
     while True:
         user_input = input(prompt).strip().lower()
         if user_input == 'true':
@@ -223,12 +223,9 @@ def handle_user_input(key_press):
 
 # Really just for for taking keyboard inputs from the user.
 
-def main():
+def walking_main():
     """Main function to handle user input."""
     while True:
         key_press = input("Press 'r' to read angles, 's' to stand, 'l' to land, 'w' to start walking: ")
         handle_user_input(key_press)
 
-# Start the main function in a separate thread.
-
-threading.Thread(target=main).start()
