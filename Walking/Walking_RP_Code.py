@@ -16,7 +16,7 @@
 # Importing modules.
 
 from math import sin, cos   # To do math.
-from lx16a import *         # To control the servos.
+from .lx16a import *         # To control the servos.
 import time                 # To track time for delays or walking patterns.
 import threading            # To run different sections of code concurently.
 from state import walking_lock, walking_direction, walking_speed, interrupt_walking
