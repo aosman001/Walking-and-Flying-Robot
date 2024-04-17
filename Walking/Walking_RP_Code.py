@@ -1,5 +1,5 @@
-##  Authors: Alaa Osman, Trevor Tang, and Anthony Saldutti
-##  Other partners: Spencer Schutz and Joe Zakielarz
+##  Authors: Alaa Osman, Trevor Tang, Anthony Saldutti, and Joe Zakielarz
+##  Other partner(s): Spencer Schutz 
 ##  Organization: Duke University, Mechanical Engineering
 ##
 ##  This script was adapted from Ethan Lipson's hello_world.py script (git@github.com:ethanlipson/PyLX-16A.git) \\
@@ -8,7 +8,7 @@
 ##  Its purpose is to execute the walking functionality of our senior capstone project (Wallking and Flying Robot), a \\
 ##  quadruped done. Said robot moves forwards or back, and the legs can extend or tuck under the body for flying mode.
 ##
-##  Last modified: April 16, 2024
+##  Last modified: April 18, 2024
 
 ############################################################################################################################
 
@@ -19,10 +19,13 @@ from math import sin, cos   # To do math.
 from lx16a import *         # To control the servos.
 import time                 # To track time for delays or walking patterns.
 import threading            # To run different sections of code concurently.
+from state import walking_lock, walking_direction, walking_speed, interrupt_walking
 
 # Initialize the servo controller, connect to the servos, and set their angle limits.
 
+
 LX16A.initialize("/dev/ttyUSB0", 0.1)
+
 
 try:
     servo1 = LX16A(1)
@@ -69,9 +72,7 @@ def read_angles():
     print("\n")
 
 # Make the robot stand in place.
-
 def stand():
-
     print("Standing.")
 
     ### Upper motors.
@@ -86,6 +87,7 @@ def stand():
     servo6.move(50.88, 1000)
     servo8.move(106, 1000)
     time.sleep(2)
+
 
 # Make the robot tuck its legs undenreath the body.
 # Use for flying mode.
@@ -115,71 +117,59 @@ def land():
 ##      2. walking_direction: Value determining which direction the robot moves (front, middle/standing, or back)
 ##      3. walking_speed: Float determining the speed of the robot (by uniformly scaling servo rotation times and delays)
 
-def walk(walking_lock = False, walking_direction = 'forward', walking_speed=1):
+def walk():
+    global walking_lock, walking_direction, walking_speed, interrupt_walking
 
-    global stop_flag
-
-    stand()
-
-    # If the walking function is locked, don't walk! (Duh).
-    
+    # If the walking function is locked, don't walk! (Duh). This is an extra check, as the main loop already checks this
     if walking_lock:
         print("Walking is locked--no bueno.")
-
-    # The robot can walk if the walking function isn't locked.
+        return
     
-    else:
+    try :
+        # In the "forward" direction, motors 1-4 are in the front.
+        if walking_direction == 'forward':
 
-        try :
-            # In the "forward" direction, motors 1-4 are in the front.
-            if walking_direction == 'forward':
-
-                print('Moving forward')
-                while True:
-                    positions = [
+            print('Moving forward')
+            while True:
+                positions = [
                         (50, 150, 197, 24, 108, 42, 122, 105),  # Step 1
                         (37, 130, 197, 99, 118, 65, 122, 55),   # Step 2
                         (75, 81, 168, 90, 130, 56, 85, 90),     # Step 3
                         (75, 152, 157, 73, 130, 10, 95, 112),   # Step 4
                     ]
-                    for pos in positions:
-                        try:
-                            servo1.move(pos[0], int(1000/walking_speed))
-                            servo2.move(pos[1], int(1000/walking_speed))
-                            servo3.move(pos[2], int(1000/walking_speed))
-                            servo4.move(pos[3], int(1000/walking_speed))
-                            servo5.move(pos[4], int(1000/walking_speed))
-                            servo6.move(pos[5], int(1000/walking_speed))
-                            servo7.move(pos[6], int(1000/walking_speed))
-                            servo8.move(pos[7], int(1000/walking_speed))
+                for pos in positions:
+                    if interrupt_walking:
+                        interrupt_walking = False
+                        return
 
-                            time.sleep(0.8/walking_speed)
+                    servo1.move(pos[0], int(1000/walking_speed))
+                    servo2.move(pos[1], int(1000/walking_speed))
+                    servo3.move(pos[2], int(1000/walking_speed))
+                    servo4.move(pos[3], int(1000/walking_speed))
+                    servo5.move(pos[4], int(1000/walking_speed))
+                    servo6.move(pos[5], int(1000/walking_speed))
+                    servo7.move(pos[6], int(1000/walking_speed))
+                    servo8.move(pos[7], int(1000/walking_speed))
 
-                            if stop_flag:
-                                return
-                        except KeyboardInterrupt:
-                            stop_flag = True
-                            print("Walk interrupted by user.")
-                            return
+                    time.sleep(0.8/walking_speed)
+
 
         # The "middle" direction is just the robot standing in place.
         
-            elif walking_direction == 'middle':
+        elif walking_direction == 'middle':
 
-                print('Staying in place')
-                stand()
+            print('Staying in place')
+            stand()
 
         # In the "backward" direction, motors 5-8 are in the front instead.
 
-            elif walking_direction == 'backward':
+        elif walking_direction == 'backward':
 
-                print('Moving backward--still in progress!') # We still need to figure this out.
+            print('Moving backward--still in progress!') # We still need to figure this out.
 
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            
- # Initialize stop_flag before main()
-stop_flag = False
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
 
 
 # Gets a boolean input from the user.
@@ -221,11 +211,22 @@ def handle_user_input(key_press):
     else:
         print("Invalid input.")
 
-# Really just for for taking keyboard inputs from the user.
 
 def walking_main():
-    """Main function to handle user input."""
+    global walking_lock, interrupt_walking
+
     while True:
-        key_press = input("Press 'r' to read angles, 's' to stand, 'l' to land, 'w' to start walking: ")
-        handle_user_input(key_press)
+        if walking_lock:
+            stand()
+            continue
+
+        # Still returning state to False, might prevent a weird data race condition
+        if interrupt_walking:
+            time.sleep(0.1)
+            continue
+        
+        walk()
+        
+
+        
 

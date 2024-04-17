@@ -1,14 +1,9 @@
 from pymavlink import mavutil
-
-
-# mavlink_monitor edits these global variables that are consumed by the other threads, like state.
-walking_lock = True
-walking_direction = "middle" # "forward" | "middle" | "back"
-walking_speed = 0.0 # 0.0 to 1.0
+from state import walking_lock, walking_direction, walking_speed, interrupt_walking
 
 # Reads controls from the Flysky
 def mavlink_monitor():
-  global walking_speed, walking_direction, walking_lock
+  global walking_speed, walking_direction, walking_lock, interrupt_walking
   master = mavutil.mavlink_connection("/dev/ttyAMA0", baud=57_600)
   running = True
   while running:
@@ -25,6 +20,8 @@ def mavlink_monitor():
       # print(f"Channel 6: {msg.chan6_raw}")
       # print(f"Channel 7: {msg.chan7_raw}")
       # print(f"Channel 8: {msg.chan8_raw}")
+
+      walking_direction_old = walking_direction
 
       # Values are empirical
       walking_speed_channel = msg.chan6_raw
@@ -44,6 +41,11 @@ def mavlink_monitor():
         walking_lock = False
       else:
         walking_lock = True
+
+      
+      # Check if we need to interrupt walking
+      if walking_lock or walking_direction_old is not walking_direction:
+        interrupt_walking = True
 
     except KeyboardInterrupt:
       print("Exiting...")
