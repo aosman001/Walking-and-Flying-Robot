@@ -16,7 +16,7 @@ def camera_main():
   while True:
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     filename = f"wfr_{timestamp}.jpg"
-    folder_path = "images"
+    folder_path = "/home/wfr/Walking-and-Flying-Robot/images"
     file_path = os.path.join(folder_path, filename)
     picam2.capture_file(file_path)
     print(f"Picture taken! Filename: {file_path}")
